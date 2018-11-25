@@ -95,6 +95,39 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
     }
 
 
+    double getTrilinearVoxel(double[] coord) {
+        if (coord[0] < 0 || Math.ceil(coord[0]) >= volume.getDimX() ||
+            coord[1] < 0 || Math.ceil(coord[1]) >= volume.getDimY() ||
+            coord[2] < 0 || Math.ceil(coord[2]) >= volume.getDimZ())
+        {
+            return getVoxel(coord);
+        }
+
+        double x = coord[0];
+        double y = coord[1];
+        double z = coord[2];
+
+        double alpha = (x - Math.ceil(x))/(Math.ceil(x) - Math.floor(x));
+        double beta = (y - Math.ceil(y))/(Math.ceil(y) - Math.floor(y));
+        double gamma = (z - Math.ceil(z))/(Math.ceil(z) - Math.floor(z));
+
+        double x0 = volume.getVoxel((int) Math.floor(x), (int) Math.floor(y), (int) Math.floor(z));
+        double x1 = volume.getVoxel((int) Math.ceil(x), (int) Math.floor(y), (int) Math.floor(z));
+        double x2 = volume.getVoxel((int) Math.floor(x), (int) Math.floor(y), (int) Math.ceil(z));
+        double x3 = volume.getVoxel((int) Math.ceil(x), (int) Math.floor(y), (int) Math.ceil(z));
+        double x4 = volume.getVoxel((int) Math.floor(x), (int) Math.ceil(y), (int) Math.floor(z));
+        double x5 = volume.getVoxel((int) Math.ceil(x), (int) Math.ceil(y), (int) Math.floor(z));
+        double x6 = volume.getVoxel((int) Math.floor(x), (int) Math.ceil(y), (int) Math.ceil(z));
+        double x7 = volume.getVoxel((int) Math.ceil(x), (int) Math.ceil(y), (int) Math.ceil(z));
+
+        double voxelVal = (1 - alpha) * (1 - beta) * (1 - gamma) * x0 + alpha * (1 - beta) * (1 - gamma) * x1 +
+                (1 - alpha) * beta * (1 - gamma) * x2 + alpha * beta * (1 - gamma) * x3 +
+                (1 - alpha) * (1 - beta) * gamma * x4 + alpha * (1 - beta) * gamma * x5 +
+                (1 - alpha) * beta * gamma * x6 + alpha * beta * gamma*x7;
+        return (short)voxelVal;
+    }
+
+
     void mip(double[] viewMatrix) {
 
         // clear image
@@ -124,14 +157,14 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         double max = volume.getMaximum();
         TFColor voxelColor = new TFColor();
 
-        int maxVox;
+        double maxVox;
 
         for (int j = 0; j < image.getHeight(); j++) {
             for (int i = 0; i < image.getWidth(); i++) {
 
                 maxVox = 0;
-                int val = 0;
-                for (int k = 0; k < volume.getDimZ() - 1; k+=10) {
+                double val = 0;
+                for (int k = 0; k < volume.getDimZ() - 1; k+=15) {
                     pixelCoord[0] = uVec[0] * (i - imageCenter) + vVec[0] * (j - imageCenter)
                             + viewVec[0] * (k - volumeCenter[0]) + volumeCenter[0];
                     pixelCoord[1] = uVec[1] * (i - imageCenter) + vVec[1] * (j - imageCenter)
@@ -139,7 +172,7 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
                     pixelCoord[2] = uVec[2] * (i - imageCenter) + vVec[2] * (j - imageCenter)
                             + viewVec[2] * (k - volumeCenter[2]) + volumeCenter[2];
 
-                    val = getVoxel(pixelCoord);
+                    val = getTrilinearVoxel(pixelCoord);
                     if (val > maxVox) {
                         maxVox = val;
                     } else {
@@ -292,7 +325,6 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
 
     @Override
     public void visualize(GL2 gl) {
-
 
         if (volume == null) {
             return;
