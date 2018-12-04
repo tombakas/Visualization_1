@@ -107,9 +107,17 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         double y = coord[1];
         double z = coord[2];
 
-        double alpha = (x - Math.ceil(x))/(Math.ceil(x) - Math.floor(x));
-        double beta = (y - Math.ceil(y))/(Math.ceil(y) - Math.floor(y));
-        double gamma = (z - Math.ceil(z))/(Math.ceil(z) - Math.floor(z));
+        double alpha, alpha_expression;
+        double beta, beta_expression;
+        double gamma, gamma_expression;
+
+        alpha_expression = (x - Math.floor(x))/(Math.ceil(x) - Math.floor(x));
+        beta_expression = (y - Math.floor(y))/(Math.ceil(y) - Math.floor(y));
+        gamma_expression = (z - Math.floor(z))/(Math.ceil(z) - Math.floor(z));
+
+        alpha = (!Double.isNaN((alpha_expression))) ? alpha_expression : 0.0;
+        beta = (!Double.isNaN(beta_expression)) ? beta_expression : 0.0;
+        gamma = (!Double.isNaN(gamma_expression)) ? gamma_expression : 0.0;
 
         double x0 = volume.getVoxel((int) Math.floor(x), (int) Math.floor(y), (int) Math.floor(z));
         double x1 = volume.getVoxel((int) Math.ceil(x), (int) Math.floor(y), (int) Math.floor(z));
