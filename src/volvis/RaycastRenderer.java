@@ -172,7 +172,11 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
 
                 maxVox = 0;
                 double val = 0;
-                for (int k = 0; k < volume.getDimZ() - 1; k+=15) {
+
+                int boundZ = volume.getDimZ() - 1;
+                int step = 5;
+
+                for (int k = 0; k < boundZ; k+=step) {
                     pixelCoord[0] = uVec[0] * (i - imageCenter) + vVec[0] * (j - imageCenter)
                             + viewVec[0] * (k - volumeCenter[0]) + volumeCenter[0];
                     pixelCoord[1] = uVec[1] * (i - imageCenter) + vVec[1] * (j - imageCenter)
