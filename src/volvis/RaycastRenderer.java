@@ -37,7 +37,6 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
     }
 
     public static void setRenderFunction(String newRenderFunction) {
-        System.out.println(newRenderFunction);
         renderFunction = newRenderFunction;
     }
 
@@ -88,8 +87,8 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
 
     short getVoxel(double[] coord) {
 
-        if (coord[0] < 0 || coord[0] > volume.getDimX() || coord[1] < 0 || coord[1] > volume.getDimY()
-                || coord[2] < 0 || coord[2] > volume.getDimZ()) {
+        if (coord[0] < 0 || coord[0] >= volume.getDimX() || coord[1] < 0 || coord[1] >= volume.getDimY()
+                || coord[2] < 0 || coord[2] >= volume.getDimZ()) {
             return 0;
         }
 
@@ -142,6 +141,48 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
     }
 
 
+    public int [] getEntryExit(int i, int j, int maxDist, double [] uVec, double [] vVec, double [] viewVec, double[] volumeCenter) {
+        int [] entryExit = new int[2];
+        double val;
+
+        // image is square
+        int imageCenter = image.getWidth() / 2;
+
+        double[] pixelCoord = new double[3];
+
+        for (int k = 0; k < maxDist; k += 50) {
+            pixelCoord[0] = uVec[0] * (i - imageCenter) + vVec[0] * (j - imageCenter)
+                    + viewVec[0] * (k - volumeCenter[0]) + volumeCenter[0];
+            pixelCoord[1] = uVec[1] * (i - imageCenter) + vVec[1] * (j - imageCenter)
+                    + viewVec[1] * (k - volumeCenter[1]) + volumeCenter[1];
+            pixelCoord[2] = uVec[2] * (i - imageCenter) + vVec[2] * (j - imageCenter)
+                    + viewVec[2] * (k - volumeCenter[2]) + volumeCenter[2];
+
+            val = getVoxel(pixelCoord);
+            if (val > 0) {
+                entryExit[0] = k - 51;
+                break;
+            }
+        }
+
+        for (int k = maxDist; k > 0; k -= 50) {
+            pixelCoord[0] = uVec[0] * (i - imageCenter) + vVec[0] * (j - imageCenter)
+                    + viewVec[0] * (k - volumeCenter[0]) + volumeCenter[0];
+            pixelCoord[1] = uVec[1] * (i - imageCenter) + vVec[1] * (j - imageCenter)
+                    + viewVec[1] * (k - volumeCenter[1]) + volumeCenter[1];
+            pixelCoord[2] = uVec[2] * (i - imageCenter) + vVec[2] * (j - imageCenter)
+                    + viewVec[2] * (k - volumeCenter[2]) + volumeCenter[2];
+
+            val = getVoxel(pixelCoord);
+            if (val > 0) {
+                entryExit[1] = k + 51;
+                break;
+            }
+        }
+        return entryExit;
+    }
+
+
     void mip(double[] viewMatrix) {
 
         // clear image
@@ -172,17 +213,20 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         TFColor voxelColor = new TFColor();
 
         double maxVox;
+        int maxDist = (int)Math.sqrt(Math.pow(volume.getDimX(), 2) + Math.pow(volume.getDimZ(), 2) + Math.pow(volume.getDimY(), 2));
 
         for (int j = 0; j < image.getHeight(); j++) {
             for (int i = 0; i < image.getWidth(); i++) {
 
                 maxVox = 0;
                 double val = 0;
+                int [] entryExit;
 
-                int boundZ = volume.getDimZ() - 1;
-                int step = 5;
+                int step = 10;
 
-                for (int k = 0; k < boundZ; k+=step) {
+                entryExit = getEntryExit(i, j, maxDist, uVec, vVec, viewVec, volumeCenter);
+
+                for (int k = entryExit[0]; k < entryExit[1]; k+=step) {
                     pixelCoord[0] = uVec[0] * (i - imageCenter) + vVec[0] * (j - imageCenter)
                             + viewVec[0] * (k - volumeCenter[0]) + volumeCenter[0];
                     pixelCoord[1] = uVec[1] * (i - imageCenter) + vVec[1] * (j - imageCenter)
@@ -356,7 +400,7 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         long startTime = System.currentTimeMillis();
         switch (renderFunction) {
             case "slicer": slicer(viewMatrix);
-                  break;
+                break;
             case "mip": mip(viewMatrix);
                 break;
         }
