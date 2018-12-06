@@ -55,6 +55,6 @@ public abstract class Renderer {
             listeners.add(l);
         }
     }
-    
+
     public abstract void visualize(GL2 gl);
 }

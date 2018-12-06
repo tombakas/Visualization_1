@@ -27,7 +27,7 @@ public class Visualization implements GLEventListener, TFChangeListener {
 
   GLU glu = new GLU();
     ArrayList<Renderer> renderers;
-    GLAutoDrawable canvas;
+    static GLAutoDrawable canvas;
     int winWidth, winHeight;
     double fov = 20.0;
     TrackballInteractor trackball;
@@ -51,7 +51,7 @@ public class Visualization implements GLEventListener, TFChangeListener {
         renderers.add(vis);
     }
 
-    public void update() {
+    public static void update() {
         canvas.display();
     }
     

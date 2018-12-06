@@ -6,6 +6,7 @@ package gui;
 
 import javax.swing.JOptionPane;
 import volvis.RaycastRenderer;
+import volvis.Visualization;
 
 /**
  *
@@ -133,11 +134,13 @@ public class RaycastRendererPanel extends javax.swing.JPanel {
     }// </editor-fold>//GEN-END:initComponents
 
     private void mipButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_mipButtonActionPerformed
-        JOptionPane.showMessageDialog(this, "Not implemented.");
+        RaycastRenderer.setRenderFunction("mip");
+        Visualization.update();
     }//GEN-LAST:event_mipButtonActionPerformed
 
     private void slicerButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_slicerButtonActionPerformed
-        
+        RaycastRenderer.setRenderFunction("slicer");
+        Visualization.update();
     }//GEN-LAST:event_slicerButtonActionPerformed
 
     private void compositingButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_compositingButtonActionPerformed

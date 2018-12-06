@@ -29,10 +29,16 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
     TransferFunction tFunc;
     TransferFunctionEditor tfEditor;
     TransferFunction2DEditor tfEditor2D;
+    static String renderFunction = "slicer";
     
     public RaycastRenderer() {
         panel = new RaycastRendererPanel(this);
         panel.setSpeedLabel("0");
+    }
+
+    public static void setRenderFunction(String newRenderFunction) {
+        System.out.println(newRenderFunction);
+        renderFunction = newRenderFunction;
     }
 
     public void setVolume(Volume vol) {
@@ -335,6 +341,7 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
 
     }
 
+
     @Override
     public void visualize(GL2 gl) {
 
@@ -347,8 +354,13 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         gl.glGetDoublev(GL2.GL_MODELVIEW_MATRIX, viewMatrix, 0);
 
         long startTime = System.currentTimeMillis();
-        mip(viewMatrix);
-        
+        switch (renderFunction) {
+            case "slicer": slicer(viewMatrix);
+                  break;
+            case "mip": mip(viewMatrix);
+                break;
+        }
+
         long endTime = System.currentTimeMillis();
         double runningTime = (endTime - startTime);
         panel.setSpeedLabel(Double.toString(runningTime));
