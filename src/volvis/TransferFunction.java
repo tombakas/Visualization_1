@@ -27,6 +27,7 @@ public class TransferFunction {
 
         LUTsize = sRange;
         LUT = new TFColor[LUTsize];
+        setTestFunc();
 
         buildLUT();
 
@@ -85,6 +86,7 @@ public class TransferFunction {
         }
 
         buildLUT();
+
         return idx;
     }
 
