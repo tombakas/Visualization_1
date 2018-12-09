@@ -264,8 +264,8 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
                 double val = 0;
                 int [] entryExit;
 
-                int step = 1;
-                TFColor [] rayColors = new TFColor[(int)Math.ceil(256 / step)];
+                int step = 10;
+                TFColor [] rayColors = new TFColor[(int)Math.ceil(256 / (double)step)];
 
                 // entryExit = getEntryExit(i, j, maxDist, uVec, vVec, viewVec, volumeCenter);
 
@@ -280,7 +280,11 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
                     val = getTrilinearVoxel(pixelCoord);
 
                     if (useCompositing) {
-                        rayColors[k / step] = tFunc.getColor((int)val);
+                        try {
+                            rayColors[k / step] = tFunc.getColor((int)val);
+                        } catch (ArrayIndexOutOfBoundsException e) {
+                            System.out.printf("Length: %d | Attempted: %d\n", rayColors.length, k/step);
+                        }
                     } else {
                         if (val > maxVox) {
                             maxVox = val;
