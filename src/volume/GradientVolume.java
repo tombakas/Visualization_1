@@ -21,10 +21,52 @@ public class GradientVolume {
     }
 
     public VoxelGradient getGradient(int x, int y, int z) {
+//        System.out.printf("%d %d %d\n", x, y, z);
         return data[x + dimX * (y + dimY * z)];
     }
 
-    
+    public double getTrilinearGradient(double [] coord) {
+        if (coord[0] < 0 || Math.ceil(coord[0]) >= dimX ||
+            coord[1] < 0 || Math.ceil(coord[1]) >= dimY ||
+            coord[2] < 0 || Math.ceil(coord[2]) >= dimZ)
+        {
+            return 0;
+        }
+
+        double x = coord[0];
+        double y = coord[1];
+        double z = coord[2];
+
+        double x_d = (x - Math.floor(x)) / (Math.ceil(x) - Math.floor(x));
+        double y_d = (y - Math.floor(y)) / (Math.ceil(y) - Math.floor(y));
+        double z_d = (z - Math.floor(z)) / (Math.ceil(z) - Math.floor(z));
+
+        if (Double.isNaN(x_d)) { x_d = 0; }
+        if (Double.isNaN(y_d)) { y_d = 0; }
+        if (Double.isNaN(z_d)) { z_d = 0; }
+
+        VoxelGradient c_000 = getGradient((int)Math.floor(x), (int)Math.floor(y), (int)Math.floor(z));
+        VoxelGradient c_001 = getGradient((int)Math.floor(x), (int)Math.ceil(y),  (int)Math.floor(z));
+        VoxelGradient c_010 = getGradient((int)Math.floor(x), (int)Math.floor(y), (int)Math.ceil(z));
+        VoxelGradient c_011 = getGradient((int)Math.floor(x), (int)Math.ceil(y),  (int)Math.ceil(z));
+        VoxelGradient c_100 = getGradient((int)Math.ceil(x),  (int)Math.floor(y), (int)Math.floor(z));
+        VoxelGradient c_101 = getGradient((int)Math.ceil(x),  (int)Math.ceil(y),  (int)Math.floor(z));
+        VoxelGradient c_110 = getGradient((int)Math.ceil(x),  (int)Math.floor(y), (int)Math.ceil(z));
+        VoxelGradient c_111 = getGradient((int)Math.ceil(x),  (int)Math.ceil(y),  (int)Math.ceil(z));
+
+        VoxelGradient c_00 = c_000.mult(1 - (float)x_d).add(c_100.mult((float)x_d));
+        VoxelGradient c_01 = c_001.mult(1 - (float)x_d).add(c_101.mult((float)x_d));
+        VoxelGradient c_10 = c_010.mult(1 - (float)x_d).add(c_110.mult((float)x_d));
+        VoxelGradient c_11 = c_011.mult(1 - (float)x_d).add(c_111.mult((float)x_d));
+
+        VoxelGradient c_0 = c_00.mult(1 - (float)y_d).add(c_10.mult((float)y_d));
+        VoxelGradient c_1 = c_01.mult(1 - (float)y_d).add(c_11.mult((float)y_d));
+
+        VoxelGradient c = c_0.mult(1 - (float)z_d).add(c_1.mult((float)z_d));
+
+        return c.mag;
+    }
+
     public void setGradient(int x, int y, int z, VoxelGradient value) {
         data[x + dimX * (y + dimY * z)] = value;
     }
