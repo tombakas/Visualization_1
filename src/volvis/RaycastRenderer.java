@@ -260,19 +260,26 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         double maxVox;
         int maxDist = (int)Math.sqrt(Math.pow(volume.getDimX(), 2) + Math.pow(volume.getDimZ(), 2) + Math.pow(volume.getDimY(), 2));
 
-        for (int j = 0; j < image.getHeight(); j++) {
-            for (int i = 0; i < image.getWidth(); i++) {
+        int pixelStep = 1;
+        int rayStep = 1;
+
+        if (interactiveMode) {
+            pixelStep = 2;
+            rayStep = 15;
+        }
+
+        for (int j = 0; j < image.getHeight(); j+=pixelStep) {
+            for (int i = 0; i < image.getWidth(); i+=pixelStep) {
 
                 maxVox = 0;
                 double val = 0;
                 int [] entryExit;
 
-                int step = 10;
-                TFColor [] rayColors = new TFColor[(int)Math.ceil(256 / (double)step)];
+                TFColor [] rayColors = new TFColor[(int)Math.ceil(256 / (double)rayStep)];
 
                 // entryExit = getEntryExit(i, j, maxDist, uVec, vVec, viewVec, volumeCenter);
 
-                for (int k = 0; k < 256; k+=step) {
+                for (int k = 0; k < 256; k+=rayStep) {
                     pixelCoord[0] = uVec[0] * (i - imageCenter) + vVec[0] * (j - imageCenter)
                             + viewVec[0] * (k - volumeCenter[0]) + volumeCenter[0];
                     pixelCoord[1] = uVec[1] * (i - imageCenter) + vVec[1] * (j - imageCenter)
@@ -284,9 +291,9 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
 
                     if (useCompositing) {
                         try {
-                            rayColors[k / step] = tFunc.getColor((int)val);
+                            rayColors[k / rayStep] = tFunc.getColor((int)val);
                         } catch (ArrayIndexOutOfBoundsException e) {
-                            System.out.printf("Length: %d | Attempted: %d\n", rayColors.length, k/step);
+                            System.out.printf("Length: %d | Attempted: %d\n", rayColors.length, k/rayStep);
                         }
                     } else {
                         if (val > maxVox) {
@@ -350,19 +357,26 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         double maxVox;
         int maxDist = (int)Math.sqrt(Math.pow(volume.getDimX(), 2) + Math.pow(volume.getDimZ(), 2) + Math.pow(volume.getDimY(), 2));
 
-        for (int j = 0; j < image.getHeight(); j++) {
-            for (int i = 0; i < image.getWidth(); i++) {
+        int pixelStep = 1;
+        int rayStep = 1;
+
+        if (interactiveMode) {
+            pixelStep = 2;
+            rayStep = 4;
+        }
+
+        for (int j = 0; j < image.getHeight(); j+=pixelStep) {
+            for (int i = 0; i < image.getWidth(); i+=pixelStep) {
 
                 maxVox = 0;
                 double val = 0;
                 int [] entryExit;
 
-                int step = 10;
-                TFColor [] rayColors = new TFColor[(int)Math.ceil(256 / (double)step)];
+                TFColor [] rayColors = new TFColor[(int)Math.ceil(256 / (double)rayStep)];
 
                 // entryExit = getEntryExit(i, j, maxDist, uVec, vVec, viewVec, volumeCenter);
 
-                for (int k = 0; k < 256; k+=step) {
+                for (int k = 0; k < 256; k+=rayStep) {
                     pixelCoord[0] = uVec[0] * (i - imageCenter) + vVec[0] * (j - imageCenter)
                             + viewVec[0] * (k - volumeCenter[0]) + volumeCenter[0];
                     pixelCoord[1] = uVec[1] * (i - imageCenter) + vVec[1] * (j - imageCenter)
@@ -373,9 +387,9 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
                     if (useCompositing) {
                         try {
 //                          System.out.printf("%f %f %f\n", pixelCoord[0], pixelCoord[1], pixelCoord[2]);
-                            rayColors[k / step] = getAlpha(pixelCoord);
+                            rayColors[k / rayStep] = getAlpha(pixelCoord);
                         } catch (ArrayIndexOutOfBoundsException e) {
-                            System.out.printf("Length: %d | Attempted: %d\n", rayColors.length, k/step);
+                            System.out.printf("Length: %d | Attempted: %d\n", rayColors.length, k/rayStep);
                         }
                     } else {
                         if (val > maxVox) {
@@ -413,7 +427,11 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         double gradient;
 
         try {
-            gradient = gradients.getTrilinearGradient(coord);
+            if (interactiveMode) {
+                gradient = gradients.getGradient(coord);
+            } else {
+                gradient = gradients.getTrilinearGradient(coord);
+            }
         } catch (ArrayIndexOutOfBoundsException e) {
             return new TFColor(0, 0 ,0, 0);
         }
@@ -429,7 +447,13 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         double b = color.b;
 
         double a = color.a;
-        double voxelIntensity = getTrilinearVoxel(coord);
+        double voxelIntensity;
+
+        if (interactiveMode) {
+            voxelIntensity = getVoxel(coord);
+        } else {
+            voxelIntensity = getTrilinearVoxel(coord);
+        }
 
         double alpha;
         double diff = Math.abs(voxelIntensity - baseIntensity) / (gradient);

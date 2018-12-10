@@ -20,6 +20,23 @@ public class GradientVolume {
         maxmag = -1.0;
     }
 
+
+    public double getGradient(double [] coord) {
+        if (coord[0] < 0 || Math.ceil(coord[0]) >= dimX ||
+            coord[1] < 0 || Math.ceil(coord[1]) >= dimY ||
+            coord[2] < 0 || Math.ceil(coord[2]) >= dimZ)
+        {
+            return 0;
+        } else {
+            return getGradient(
+                    (int)Math.floor(coord[0]),
+                    (int)Math.floor(coord[1]),
+                    (int)Math.floor(coord[2])
+            ).mag;
+        }
+    }
+
+
     public VoxelGradient getGradient(int x, int y, int z) {
 //        System.out.printf("%d %d %d\n", x, y, z);
         return data[x + dimX * (y + dimY * z)];
