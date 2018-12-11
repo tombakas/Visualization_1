@@ -197,10 +197,6 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         return entryExit;
     }
 
-    void mip(double[] viewMatrix) {
-        mip(viewMatrix, false);
-    }
-
     TFColor computeCompositeColor(TFColor [] rayColors) {
         int k = rayColors.length;
 
@@ -212,12 +208,6 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         double alphaProduct;
 
         for (int m=0; m<k; m++) {
-//            alphaProduct = 1;
-
-//            for (int n=m+1; n<m; n++) {
-//                alphaProduct *= (1 - rayColors[n].a);
-//            }
-
             red   =  (1 - rayColors[m].a) * red   + rayColors[m].r * rayColors[m].a;
             green =  (1 - rayColors[m].a) * green + rayColors[m].g * rayColors[m].a;
             blue  =  (1 - rayColors[m].a) * blue  + rayColors[m].b * rayColors[m].a;
@@ -227,7 +217,11 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         return new TFColor(red, green, blue,  alpha);
     }
 
-    void mip(double[] viewMatrix, boolean useCompositing) {
+    void multirenderer(double[] viewMatrix) {
+        multirenderer(viewMatrix, false);
+    }
+
+    void multirenderer(double[] viewMatrix, boolean useCompositing) {
 
         // clear image
         // clear image
@@ -261,7 +255,7 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         int maxDist = (int)Math.sqrt(Math.pow(volume.getDimX(), 2) + Math.pow(volume.getDimZ(), 2) + Math.pow(volume.getDimY(), 2));
 
         int pixelStep = 1;
-        int rayStep = 1;
+        int rayStep = 10;
 
         if (interactiveMode) {
             pixelStep = 2;
@@ -291,7 +285,11 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
 
                     if (useCompositing) {
                         try {
-                            rayColors[k / rayStep] = tFunc.getColor((int)val);
+                            if (renderFunction == "compositing") {
+                                rayColors[k / rayStep] = tFunc.getColor((int) val);
+                            } else if (renderFunction == "transfer_2d") {
+                                rayColors[k / rayStep] = getAlpha(pixelCoord);
+                            }
                         } catch (ArrayIndexOutOfBoundsException e) {
                             System.out.printf("Length: %d | Attempted: %d\n", rayColors.length, k/rayStep);
                         }
@@ -324,103 +322,6 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
             }
         }
     }
-
-    void transfer_2d(double[] viewMatrix, boolean useCompositing) {
-
-        // clear image
-        for (int j = 0; j < image.getHeight(); j++) {
-            for (int i = 0; i < image.getWidth(); i++) {
-                image.setRGB(i, j, 0);
-            }
-        }
-
-        // vector uVec and vVec define a plane through the origin,
-        // perpendicular to the view vector viewVec
-        double[] viewVec = new double[3];
-        double[] uVec = new double[3];
-        double[] vVec = new double[3];
-        VectorMath.setVector(viewVec, viewMatrix[2], viewMatrix[6], viewMatrix[10]);
-        VectorMath.setVector(uVec, viewMatrix[0], viewMatrix[4], viewMatrix[8]);
-        VectorMath.setVector(vVec, viewMatrix[1], viewMatrix[5], viewMatrix[9]);
-
-        // image is square
-        int imageCenter = image.getWidth() / 2;
-
-        double[] pixelCoord = new double[3];
-        double[] volumeCenter = new double[3];
-        VectorMath.setVector(volumeCenter, volume.getDimX() / 2, volume.getDimY() / 2, volume.getDimZ() / 2);
-
-        // sample on a plane through the origin of the volume data
-        double max = volume.getMaximum();
-        TFColor voxelColor = new TFColor();
-
-        double maxVox;
-        int maxDist = (int)Math.sqrt(Math.pow(volume.getDimX(), 2) + Math.pow(volume.getDimZ(), 2) + Math.pow(volume.getDimY(), 2));
-
-        int pixelStep = 1;
-        int rayStep = 1;
-
-        if (interactiveMode) {
-            pixelStep = 2;
-            rayStep = 4;
-        }
-
-        for (int j = 0; j < image.getHeight(); j+=pixelStep) {
-            for (int i = 0; i < image.getWidth(); i+=pixelStep) {
-
-                maxVox = 0;
-                double val = 0;
-                int [] entryExit;
-
-                TFColor [] rayColors = new TFColor[(int)Math.ceil(256 / (double)rayStep)];
-
-                // entryExit = getEntryExit(i, j, maxDist, uVec, vVec, viewVec, volumeCenter);
-
-                for (int k = 0; k < 256; k+=rayStep) {
-                    pixelCoord[0] = uVec[0] * (i - imageCenter) + vVec[0] * (j - imageCenter)
-                            + viewVec[0] * (k - volumeCenter[0]) + volumeCenter[0];
-                    pixelCoord[1] = uVec[1] * (i - imageCenter) + vVec[1] * (j - imageCenter)
-                            + viewVec[1] * (k - volumeCenter[1]) + volumeCenter[1];
-                    pixelCoord[2] = uVec[2] * (i - imageCenter) + vVec[2] * (j - imageCenter)
-                            + viewVec[2] * (k - volumeCenter[2]) + volumeCenter[2];
-
-                    if (useCompositing) {
-                        try {
-//                          System.out.printf("%f %f %f\n", pixelCoord[0], pixelCoord[1], pixelCoord[2]);
-                            rayColors[k / rayStep] = getAlpha(pixelCoord);
-                        } catch (ArrayIndexOutOfBoundsException e) {
-                            System.out.printf("Length: %d | Attempted: %d\n", rayColors.length, k/rayStep);
-                        }
-                    } else {
-                        if (val > maxVox) {
-                            maxVox = val;
-                        } else {
-                            val = maxVox;
-                        }
-
-                    }
-                }
-
-                if (!useCompositing) {
-                    voxelColor.r = val / max;
-                    voxelColor.g = voxelColor.r;
-                    voxelColor.b = voxelColor.r;
-                    voxelColor.a = val > 0 ? 1.0 : 0.0;  // this makes intensity 0 completely transparent and the rest opaque
-                } else {
-                    voxelColor = computeCompositeColor(rayColors);
-                }
-
-                int c_alpha = voxelColor.a <= 1.0 ? (int) Math.floor(voxelColor.a * 255) : 255;
-                int c_red = voxelColor.r <= 1.0 ? (int) Math.floor(voxelColor.r * 255) : 255;
-                int c_green = voxelColor.g <= 1.0 ? (int) Math.floor(voxelColor.g * 255) : 255;
-                int c_blue = voxelColor.b <= 1.0 ? (int) Math.floor(voxelColor.b * 255) : 255;
-                int pixelColor = (c_alpha << 24) | (c_red << 16) | (c_green << 8) | c_blue;
-                image.setRGB(i, j, pixelColor);
-                // BufferedImage expects a pixel color packed as ARGB in an int
-            }
-        }
-    }
-
 
     TFColor getAlpha(double coord[]) {
         int x, y, z;
@@ -445,8 +346,8 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         double r = color.r;
         double g = color.g;
         double b = color.b;
-
         double a = color.a;
+
         double voxelIntensity;
 
         if (interactiveMode) {
@@ -608,11 +509,11 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         switch (renderFunction) {
             case "slicer": slicer(viewMatrix);
                 break;
-            case "mip": mip(viewMatrix);
+            case "mip": multirenderer(viewMatrix);
                 break;
-            case "mip_comp": mip(viewMatrix, true);
-                break;
-            case "transfer_2d": transfer_2d(viewMatrix, true);
+            case "compositing":
+            case "transfer_2d":
+                multirenderer(viewMatrix, true);
                 break;
         }
 
