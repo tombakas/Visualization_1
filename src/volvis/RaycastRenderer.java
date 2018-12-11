@@ -34,6 +34,7 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
     TransferFunctionEditor tfEditor;
     TransferFunction2DEditor tfEditor2D;
     static String renderFunction = "slicer";
+    public static boolean useShading = false;
 
     public RaycastRenderer() {
         panel = new RaycastRendererPanel(this);
