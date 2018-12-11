@@ -255,7 +255,7 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         int maxDist = (int)Math.sqrt(Math.pow(volume.getDimX(), 2) + Math.pow(volume.getDimZ(), 2) + Math.pow(volume.getDimY(), 2));
 
         int pixelStep = 1;
-        int rayStep = 10;
+        int rayStep = 5;
 
         if (interactiveMode) {
             pixelStep = 2;
@@ -317,7 +317,18 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
                 int c_green = voxelColor.g <= 1.0 ? (int) Math.floor(voxelColor.g * 255) : 255;
                 int c_blue = voxelColor.b <= 1.0 ? (int) Math.floor(voxelColor.b * 255) : 255;
                 int pixelColor = (c_alpha << 24) | (c_red << 16) | (c_green << 8) | c_blue;
+
                 image.setRGB(i, j, pixelColor);
+                if (interactiveMode) {
+                    if (i>0 && j>0 && i<image.getWidth() && j<image.getHeight()){
+                        for (int k=i-1; k<i+2; k++) {
+                            for (int l=j-1; l<j+2; l++) {
+                                image.setRGB(k, l, pixelColor);
+                            }
+                        }
+                    }
+                }
+
                 // BufferedImage expects a pixel color packed as ARGB in an int
             }
         }
