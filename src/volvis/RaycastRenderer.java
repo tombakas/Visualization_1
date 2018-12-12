@@ -64,9 +64,8 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         };
 
         public void run() {
-            // System.out.printf("Running thread for %d\n", j);
             int pixelStep = 1;
-            int rayStep = 5;
+            int rayStep = 1;
 
             double max = volume.getMaximum();
             double [] pixelCoord = new double[3];
@@ -337,7 +336,6 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
     void multirenderer(double[] viewMatrix, boolean useCompositing) {
 
         // clear image
-        // clear image
         for (int j = 0; j < image.getHeight(); j++) {
             for (int i = 0; i < image.getWidth(); i++) {
                 image.setRGB(i, j, 0);
@@ -358,19 +356,10 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         // image is square
         int imageCenter = image.getWidth() / 2;
 
-        double[] pixelCoord = new double[3];
         double[] volumeCenter = new double[3];
         VectorMath.setVector(volumeCenter, volume.getDimX() / 2, volume.getDimY() / 2, volume.getDimZ() / 2);
 
-        // sample on a plane through the origin of the volume data
-        double max = volume.getMaximum();
-        TFColor voxelColor = new TFColor();
-
-        double maxVox;
         int maxDist = (int)Math.sqrt(Math.pow(volume.getDimX(), 2) + Math.pow(volume.getDimZ(), 2) + Math.pow(volume.getDimY(), 2));
-
-        int pixelStep = 1;
-        int rayStep = 5;
 
         MultiThreadRenderer [] renderThread = new MultiThreadRenderer[cores];
 
