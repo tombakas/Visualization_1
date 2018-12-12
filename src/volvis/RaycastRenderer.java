@@ -37,15 +37,34 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
     public static boolean useShading = false;
 
     private class MultiThreadRenderer extends Thread {
-        public void run(
-                double [] uVec,
-                double [] vVec,
-                double [] viewVec,
-                double [] volumeCenter,
-                int j,
-                int imageCenter,
-                boolean useCompositing
+        double [] uVec;
+        double [] vVec;
+        double [] viewVec;
+        double [] volumeCenter;
+        int j;
+        int imageCenter;
+        boolean useCompositing;
+
+        MultiThreadRenderer(
+            double [] uVec,
+            double [] vVec,
+            double [] viewVec,
+            double [] volumeCenter,
+            int j,
+            int imageCenter,
+            boolean useCompositing
         ) {
+            this.uVec = uVec;
+            this.vVec = vVec;
+            this.viewVec = viewVec;
+            this.volumeCenter = volumeCenter;
+            this.j = j;
+            this.imageCenter = imageCenter;
+            this.useCompositing = useCompositing;
+        };
+
+        public void run() {
+            // System.out.printf("Running thread for %d\n", j);
             int pixelStep = 1;
             int rayStep = 5;
 
@@ -353,26 +372,20 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         int pixelStep = 1;
         int rayStep = 5;
 
-        if (interactiveMode) {
-            cores = 1;
-        }
-
         MultiThreadRenderer [] renderThread = new MultiThreadRenderer[cores];
-        for (int c=0; c<cores; c++) {
-            renderThread[c] = new MultiThreadRenderer();
-        }
 
+        cores = 8;
         for (int j=0; j<image.getHeight() - cores; j+=cores) {
             for (int c=0; c<cores; c++) {
-                renderThread[c] = new MultiThreadRenderer();
-                renderThread[c].run(
-                uVec,
-                vVec,
-                viewVec,
-                volumeCenter,
-                j + c,
-                imageCenter,
-                useCompositing);
+                renderThread[c] = new MultiThreadRenderer(
+                        uVec,
+                        vVec,
+                        viewVec,
+                        volumeCenter,
+                        j + c,
+                        imageCenter,
+                        useCompositing);
+                renderThread[c].start();
             }
 
             for (int c=0; c<cores; c++) {
