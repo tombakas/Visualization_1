@@ -36,6 +36,22 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
     static String renderFunction = "slicer";
     public static boolean useShading = false;
 
+    private class MultiThreadRenderer extends Thread {
+        public TFColor run(
+                double [] uVec,
+                double [] vVec,
+                double [] viewVec,
+                double [] volumeCenter,
+                int i,
+                int j,
+                int k,
+                int imageCenter,
+                boolean useCompositing
+        ) {
+            return new TFColor(1, 0, 0, 1);
+        }
+    }
+
     public RaycastRenderer() {
         panel = new RaycastRendererPanel(this);
         panel.setSpeedLabel("0");
@@ -232,6 +248,8 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
             }
         }
 
+        int cores = 5; // Runtime.getRuntime().availableProcessors();
+
         // vector uVec and vVec define a plane through the origin,
         // perpendicular to the view vector viewVec
         double[] viewVec = new double[3];
@@ -277,14 +295,22 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
                 // entryExit = getEntryExit(i, j, maxDist, uVec, vVec, viewVec, volumeCenter);
 
                 for (int k = 0; k < 256; k+=rayStep) {
-                    pixelCoord[0] = uVec[0] * (i - imageCenter) + vVec[0] * (j - imageCenter)
-                            + viewVec[0] * (k - volumeCenter[0]) + volumeCenter[0];
-                    pixelCoord[1] = uVec[1] * (i - imageCenter) + vVec[1] * (j - imageCenter)
-                            + viewVec[1] * (k - volumeCenter[1]) + volumeCenter[1];
-                    pixelCoord[2] = uVec[2] * (i - imageCenter) + vVec[2] * (j - imageCenter)
-                            + viewVec[2] * (k - volumeCenter[2]) + volumeCenter[2];
 
-                    val = getTrilinearVoxel(pixelCoord);
+                    MultiThreadRenderer [] renderThread = new MultiThreadRenderer[cores];
+                    for (int c=0; c<cores; c++) {
+                        if (k + c < rayColors.length) {
+                            renderThread[c] = new MultiThreadRenderer();
+                            rayColors[k+c] = renderThread[0].run(uVec, vVec, viewVec, volumeCenter, i,j, k + c, imageCenter, useCompositing);
+                        }
+                    }
+
+                    for (Thread thread: renderThread) {
+                        try {
+                            thread.join();
+                        } catch (Exception e) {
+
+                        }
+                    }
 
                     if (useCompositing) {
                         try {
