@@ -48,7 +48,25 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
                 int imageCenter,
                 boolean useCompositing
         ) {
-            return new TFColor(1, 0, 0, 1);
+            double [] pixelCoord = new double[3];
+            pixelCoord[0] = uVec[0] * (i - imageCenter) + vVec[0] * (j - imageCenter)
+               + viewVec[0] * (k - volumeCenter[0]) + volumeCenter[0];
+            pixelCoord[1] = uVec[1] * (i - imageCenter) + vVec[1] * (j - imageCenter)
+                    + viewVec[1] * (k - volumeCenter[1]) + volumeCenter[1];
+            pixelCoord[2] = uVec[2] * (i - imageCenter) + vVec[2] * (j - imageCenter)
+                    + viewVec[2] * (k - volumeCenter[2]) + volumeCenter[2];
+
+            double val = getTrilinearVoxel(pixelCoord);
+            if (useCompositing) {
+                if (renderFunction == "compositing") {
+                    return tFunc.getColor((int) val);
+                } else if (renderFunction == "transfer_2d") {
+                    return getAlpha(pixelCoord, viewVec);
+                }
+            } else {
+                return new TFColor(1, 0, 0, 1);
+            }
+            return new TFColor(0, 1, 0, 1);
         }
     }
 
@@ -248,7 +266,7 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
             }
         }
 
-        int cores = 5; // Runtime.getRuntime().availableProcessors();
+        int cores = Runtime.getRuntime().availableProcessors();
 
         // vector uVec and vVec define a plane through the origin,
         // perpendicular to the view vector viewVec
@@ -281,6 +299,11 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
             rayStep = 15;
         }
 
+        MultiThreadRenderer [] renderThread = new MultiThreadRenderer[cores];
+        for (int c=0; c<cores; c++) {
+            renderThread[c] = new MultiThreadRenderer();
+        }
+
 //        System.out.printf("%f %f %f\n", viewVec[0], viewVec[1], viewVec[2]);
 //        System.out.println(VectorMath.length(viewVec));
         for (int j = 0; j < image.getHeight(); j+=pixelStep) {
@@ -294,12 +317,10 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
 
                 // entryExit = getEntryExit(i, j, maxDist, uVec, vVec, viewVec, volumeCenter);
 
-                for (int k = 0; k < 256; k+=rayStep) {
+                for (int k = 0; k < 256 - cores; k+=cores) {
 
-                    MultiThreadRenderer [] renderThread = new MultiThreadRenderer[cores];
                     for (int c=0; c<cores; c++) {
                         if (k + c < rayColors.length) {
-                            renderThread[c] = new MultiThreadRenderer();
                             rayColors[k+c] = renderThread[0].run(uVec, vVec, viewVec, volumeCenter, i,j, k + c, imageCenter, useCompositing);
                         }
                     }
@@ -312,25 +333,7 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
                         }
                     }
 
-                    if (useCompositing) {
-                        try {
-                            if (renderFunction == "compositing") {
-                                rayColors[k / rayStep] = tFunc.getColor((int) val);
-                            } else if (renderFunction == "transfer_2d") {
-                                rayColors[k / rayStep] = getAlpha(pixelCoord, viewVec);
-                            }
-                        } catch (ArrayIndexOutOfBoundsException e) {
-                            System.out.printf("Length: %d | Attempted: %d\n", rayColors.length, k/rayStep);
-                        }
-                    } else {
-                        if (val > maxVox) {
-                            maxVox = val;
-                        } else {
-                            val = maxVox;
-                        }
-
                     }
-                }
 
                 if (!useCompositing) {
                     voxelColor.r = val / max;
