@@ -128,7 +128,6 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
                 int c_green = voxelColor.g <= 1.0 ? (int) Math.floor(voxelColor.g * 255) : 255;
                 int c_blue = voxelColor.b <= 1.0 ? (int) Math.floor(voxelColor.b * 255) : 255;
                 int pixelColor = (c_alpha << 24) | (c_red << 16) | (c_green << 8) | c_blue;
-
                 image.setRGB(i, j, pixelColor);
                 if (interactiveMode) {
                     if (i > 0 && j > 0 && i < image.getWidth() && j < image.getHeight()) {
@@ -376,18 +375,6 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
                         useCompositing);
                 renderThread[c].start();
             }
-
-            for (int c=0; c<cores; c++) {
-                try{
-                    renderThread[c].join();
-                } catch (Exception e) {
-
-                }
-            }
-        }
-
-        for (int j = 0; j < image.getHeight(); j+=cores) {
-
         }
     }
 
