@@ -289,7 +289,7 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
                             if (renderFunction == "compositing") {
                                 rayColors[k / rayStep] = tFunc.getColor((int) val);
                             } else if (renderFunction == "transfer_2d") {
-                                rayColors[k / rayStep] = getAlpha(pixelCoord);
+                                rayColors[k / rayStep] = getAlpha(pixelCoord, viewVec);
                             }
                         } catch (ArrayIndexOutOfBoundsException e) {
                             System.out.printf("Length: %d | Attempted: %d\n", rayColors.length, k/rayStep);
@@ -335,9 +335,9 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         }
     }
 
-    TFColor getAlpha(double coord[]) {
+    TFColor getAlpha(double coord[], double [] viewVec) {
         int x, y, z;
-        double gradient;
+        VoxelGradient gradient;
 
         try {
             if (interactiveMode) {
@@ -369,16 +369,70 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         }
 
         double alpha;
-        double diff = Math.abs(voxelIntensity - baseIntensity) / (gradient);
+        double diff = Math.abs(voxelIntensity - baseIntensity) / (gradient.mag);
 
-        if(gradient < 0.01 && voxelIntensity == baseIntensity) {
+        if(gradient.mag < 0.01 && voxelIntensity == baseIntensity) {
             alpha = a;
         }
-        else if(gradient > 0 && diff <= radius) {
+        else if(gradient.mag > 0 && diff <= radius) {
             alpha = a * (1.0 - 1.0 / radius * diff);
         }
         else{
             alpha = 0.0;
+        }
+
+        if (useShading) {
+            double specular = 0.1;
+            double specularPower = 100;
+            double diffuse = 0.7;
+            double ambient = 0.4;
+            double facing = 0.4;
+
+//            if(a < 0.0001){
+//                return new TFColor(r, g, b, alpha);
+//            }
+
+            double[] lightVec = new double[3];
+            lightVec[0] = 40;
+            lightVec[1] = 150;
+            lightVec[2] = 50;
+
+            //calulate the normal.
+            double[] normal = new double[3];
+            normal[0] = -gradient.x / gradient.mag;
+            normal[1] = -gradient.y / gradient.mag;
+            normal[2] = -gradient.z / gradient.mag;
+
+            //calculate the reflection vector.
+            double[] reflVec = new double[3];
+            reflVec[0] = normal[0] - lightVec[0];
+            reflVec[1] = normal[1] - lightVec[1];
+            reflVec[2] = normal[2] - lightVec[2];
+
+            //normailze the reflection vector.
+            double reflVelMag = Math.sqrt(reflVec[0] * reflVec[0] + reflVec[1] * reflVec[1] + reflVec[2] * reflVec[2]);
+            reflVec[0] = reflVec[0] / reflVelMag;
+            reflVec[1] = reflVec[1] / reflVelMag;
+            reflVec[2] = reflVec[2] / reflVelMag;
+
+            //calculate reflection strength
+            double reflection =
+                reflVec[0] * viewVec[0] +
+                reflVec[1] * viewVec[1] +
+                reflVec[2] * viewVec[2];
+
+            reflection = reflection > 0 ? reflection : 0;
+
+            //calculate facingStrength
+            double faceStrength = normal[0] * viewVec[0] + normal[1]*viewVec[1] + normal[2] * viewVec[2];
+            faceStrength = faceStrength > 0 ? faceStrength : 0;
+
+            //fuse lighting effects
+            double contrast = ambient + facing*faceStrength + specular*Math.pow(reflection, specularPower)+diffuse*reflection;
+
+            r = contrast * r;
+            g = contrast * g;
+            b = contrast * b;
         }
 
         return new TFColor(r, g, b, alpha);
