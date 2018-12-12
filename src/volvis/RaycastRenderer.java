@@ -263,6 +263,8 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
             rayStep = 15;
         }
 
+//        System.out.printf("%f %f %f\n", viewVec[0], viewVec[1], viewVec[2]);
+//        System.out.println(VectorMath.length(viewVec));
         for (int j = 0; j < image.getHeight(); j+=pixelStep) {
             for (int i = 0; i < image.getWidth(); i+=pixelStep) {
 
@@ -383,25 +385,43 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
 
         if (useShading) {
             double specular = 0.1;
-            double specularPower = 100;
             double diffuse = 0.7;
-            double ambient = 0.4;
-            double facing = 0.4;
+            double ambient = 0.8;
 
-//            if(a < 0.0001){
-//                return new TFColor(r, g, b, alpha);
-//            }
+            if(a < 0.0001){
+                return new TFColor(r, g, b, alpha);
+            }
 
             double[] lightVec = new double[3];
-            lightVec[0] = 40;
-            lightVec[1] = 150;
-            lightVec[2] = 50;
+            lightVec[0] = 4;
+            lightVec[1] = 20;
+            lightVec[2] = 0;
+            double [] normalizedLightVec = VectorMath.normalize(lightVec);
 
-            //calulate the normal.
             double[] normal = new double[3];
-            normal[0] = -gradient.x / gradient.mag;
-            normal[1] = -gradient.y / gradient.mag;
-            normal[2] = -gradient.z / gradient.mag;
+            if (gradient.mag > 0) {
+                normal[0] = gradient.x / gradient.mag;
+                normal[1] = gradient.y / gradient.mag;
+                normal[2] = gradient.z / gradient.mag;
+            } else {
+                normal[0] = 0;
+                normal[1] = 0;
+                normal[2] = 0;
+            }
+
+            double LN = VectorMath.dotproduct(normalizedLightVec, normal);
+            if (LN < 0) {
+                LN = 0;
+            }
+
+            double [] H = VectorMath.normalize(
+                    VectorMath.divideScalar(
+                            VectorMath.add(normalizedLightVec, viewVec),
+                            VectorMath.length(VectorMath.add(normalizedLightVec, viewVec))
+                    )
+            );
+
+            double HN = VectorMath.dotproduct(H, normal);
 
             //calculate the reflection vector.
             double[] reflVec = new double[3];
@@ -427,12 +447,13 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
             double faceStrength = normal[0] * viewVec[0] + normal[1]*viewVec[1] + normal[2] * viewVec[2];
             faceStrength = faceStrength > 0 ? faceStrength : 0;
 
-            //fuse lighting effects
-            double contrast = ambient + facing*faceStrength + specular*Math.pow(reflection, specularPower)+diffuse*reflection;
+//            System.out.printf("%f %f %f %f\n", r, g, b, alpha);
+//            System.out.println(LN);
+//            System.out.println(HN);
 
-            r = contrast * r;
-            g = contrast * g;
-            b = contrast * b;
+            r = ambient + r * diffuse * LN + specular * Math.pow(HN, 3);
+            g = ambient + g * diffuse * LN + specular * Math.pow(HN, 3);
+            b = ambient + b * diffuse * LN + specular * Math.pow(HN, 3);
         }
 
         return new TFColor(r, g, b, alpha);

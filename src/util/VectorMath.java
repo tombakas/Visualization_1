@@ -33,12 +33,34 @@ public class VectorMath {
         return Math.sqrt(VectorMath.dotproduct(tmp, tmp));
     }
 
+    public static double [] divideScalar(double[] v, double w) {
+        v[0] = v[0] / w;
+        v[1] = v[1] / w;
+        v[2] = v[2] / w;
+        return v;
+    }
+
     // compute dotproduct of v and w
     public static double[] crossproduct(double[] v, double[] w, double[] r) {
         r[0] = v[1] * w[2] - v[2] * w[1];
         r[1] = v[2] * w[0] - v[0] * w[2];
         r[2] = v[0] * w[1] - v[1] * w[0];
         return r;
+    }
+
+    public static double[] add(double[] v, double[] w) {
+        v[0] = v[0] + w[0];
+        v[1] = v[1] + w[1];
+        v[2] = v[2] + w[2];
+        return v;
+    }
+
+    public static double[] normalize(double[] v) {
+        double l = length(v);
+        v[0] = v[0] / l;
+        v[1] = v[1] / l;
+        v[2] = v[2] / l;
+        return v ;
     }
     
     // compute length of vector v
