@@ -70,7 +70,7 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
 
         public void run() {
             int pixelStep = 1;
-            int rayStep = 1;
+            int rayStep = 5;
 
             double max = volume.getMaximum();
             double[] pixelCoord = new double[3];
@@ -165,7 +165,7 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         volume = vol;
 
         System.out.println("Computing gradients");
-        gradients = new GradientVolume(vol);
+         gradients = new GradientVolume(vol);
 
         // set up image for stering the resulting rendering
         // the image width and height are equal to the length of the volume diagonal
@@ -342,7 +342,7 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
             ) {
 
         int pixelStep = 2;
-        int rayStep = 5;
+        int rayStep = 15;
 
         double max = volume.getMaximum();
         double[] pixelCoord = new double[3];
@@ -545,7 +545,7 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
             double [] normalizedLightVec = VectorMath.normalize(lightVec);
 
             double[] normal = new double[3];
-            if (gradient.mag > 0) {
+            if (gradient.mag != 0) {
                 normal[0] = gradient.x / gradient.mag;
                 normal[1] = gradient.y / gradient.mag;
                 normal[2] = gradient.z / gradient.mag;
@@ -559,6 +559,7 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
             if (LN < 0) {
                 LN = 0;
             }
+
 
             double [] H = VectorMath.normalize(
                     VectorMath.divideScalar(
