@@ -338,7 +338,6 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
             double [] viewVec,
             double [] volumeCenter,
             int imageCenter,
-            int j,
             boolean useCompositing
             ) {
 
@@ -350,66 +349,68 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
 
         TFColor voxelColor = new TFColor();
 
-        for(int i = 0; i<image.getWidth();i+=pixelStep) {
+        for (int j=0; j < image.getHeight(); j += pixelStep) {
+            for(int i = 0; i < image.getWidth();  i += pixelStep) {
 
-            double maxVox = 0;
-            double val = 0;
+                double maxVox = 0;
+                double val = 0;
 
-            TFColor[] rayColors = new TFColor[(int) Math.ceil(256 / (double) rayStep)];
+                TFColor[] rayColors = new TFColor[(int) Math.ceil(256 / (double) rayStep)];
 
-            for (int k = 0; k < 256; k += rayStep) {
-                pixelCoord[0] = uVec[0] * (i - imageCenter) + vVec[0] * (j - imageCenter)
-                        + viewVec[0] * (k - volumeCenter[0]) + volumeCenter[0];
-                pixelCoord[1] = uVec[1] * (i - imageCenter) + vVec[1] * (j - imageCenter)
-                        + viewVec[1] * (k - volumeCenter[1]) + volumeCenter[1];
-                pixelCoord[2] = uVec[2] * (i - imageCenter) + vVec[2] * (j - imageCenter)
-                        + viewVec[2] * (k - volumeCenter[2]) + volumeCenter[2];
+                for (int k = 0; k < 256; k += rayStep) {
+                    pixelCoord[0] = uVec[0] * (i - imageCenter) + vVec[0] * (j - imageCenter)
+                            + viewVec[0] * (k - volumeCenter[0]) + volumeCenter[0];
+                    pixelCoord[1] = uVec[1] * (i - imageCenter) + vVec[1] * (j - imageCenter)
+                            + viewVec[1] * (k - volumeCenter[1]) + volumeCenter[1];
+                    pixelCoord[2] = uVec[2] * (i - imageCenter) + vVec[2] * (j - imageCenter)
+                            + viewVec[2] * (k - volumeCenter[2]) + volumeCenter[2];
 
-                val = getTrilinearVoxel(pixelCoord);
+                    val = getTrilinearVoxel(pixelCoord);
 
-                if (useCompositing) {
-                    try {
-                        if (renderFunction == "compositing") {
-                            rayColors[k / rayStep] = tFunc.getColor((int) val);
-                        } else if (renderFunction == "transfer_2d") {
-                            rayColors[k / rayStep] = getAlpha(pixelCoord, viewVec);
+                    if (useCompositing) {
+                        try {
+                            if (renderFunction == "compositing") {
+                                rayColors[k / rayStep] = tFunc.getColor((int) val);
+                            } else if (renderFunction == "transfer_2d") {
+                                rayColors[k / rayStep] = getAlpha(pixelCoord, viewVec);
+                            }
+                        } catch (ArrayIndexOutOfBoundsException e) {
+                            System.out.printf("Length: %d | Attempted: %d\n", rayColors.length, k / rayStep);
                         }
-                    } catch (ArrayIndexOutOfBoundsException e) {
-                        System.out.printf("Length: %d | Attempted: %d\n", rayColors.length, k / rayStep);
-                    }
-                } else {
-                    if (val > maxVox) {
-                        maxVox = val;
                     } else {
-                        val = maxVox;
+                        if (val > maxVox) {
+                            maxVox = val;
+                        } else {
+                            val = maxVox;
+                        }
+
                     }
-
                 }
-            }
 
-            if (!useCompositing) {
-                voxelColor.r = val / max;
-                voxelColor.g = voxelColor.r;
-                voxelColor.b = voxelColor.r;
-                voxelColor.a = val > 0 ? 1.0 : 0.0;  // this makes intensity 0 completely transparent and the rest opaque
-            } else {
-                voxelColor = computeCompositeColor(rayColors);
-            }
+                if (!useCompositing) {
+                    voxelColor.r = val / max;
+                    voxelColor.g = voxelColor.r;
+                    voxelColor.b = voxelColor.r;
+                    voxelColor.a = val > 0 ? 1.0 : 0.0;  // this makes intensity 0 completely transparent and the rest opaque
+                } else {
+                    voxelColor = computeCompositeColor(rayColors);
+                }
 
-            int c_alpha = voxelColor.a <= 1.0 ? (int) Math.floor(voxelColor.a * 255) : 255;
-            int c_red = voxelColor.r <= 1.0 ? (int) Math.floor(voxelColor.r * 255) : 255;
-            int c_green = voxelColor.g <= 1.0 ? (int) Math.floor(voxelColor.g * 255) : 255;
-            int c_blue = voxelColor.b <= 1.0 ? (int) Math.floor(voxelColor.b * 255) : 255;
-            int pixelColor = (c_alpha << 24) | (c_red << 16) | (c_green << 8) | c_blue;
-            image.setRGB(i, j, pixelColor);
-            if (interactiveMode) {
-                if (i > 0 && j > 0 && i < image.getWidth() && j < image.getHeight()) {
-                    for (int k = i - 1; k < i + 2; k++) {
-                        for (int l = j - 1; l < j + 2; l++) {
-                            try {
-                                image.setRGB(k, l, pixelColor);
-                            } catch (Exception e) {
+                int c_alpha = voxelColor.a <= 1.0 ? (int) Math.floor(voxelColor.a * 255) : 255;
+                int c_red = voxelColor.r <= 1.0 ? (int) Math.floor(voxelColor.r * 255) : 255;
+                int c_green = voxelColor.g <= 1.0 ? (int) Math.floor(voxelColor.g * 255) : 255;
+                int c_blue = voxelColor.b <= 1.0 ? (int) Math.floor(voxelColor.b * 255) : 255;
+                int pixelColor = (c_alpha << 24) | (c_red << 16) | (c_green << 8) | c_blue;
+                image.setRGB(i, j, pixelColor);
+                if (interactiveMode) {
+                    if (i > 0 && j > 0 && i < image.getWidth() && j < image.getHeight()) {
+                        for (int k = i - 1; k < i + 2; k++) {
+                            for (int l = j - 1; l < j + 2; l++) {
+                                try {
+                                    image.setRGB(k, l, pixelColor);
+                                } catch (Exception e) {
 
+                                }
                             }
                         }
                     }
@@ -454,11 +455,19 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         if (!interactiveMode) {
             iter = cores;
         } else {
-            iter = 1;
+            iter = 2;
         }
 
-        for (int j = 0; j < image.getHeight() - cores; j += iter) {
-            if (!interactiveMode) {
+        if (interactiveMode) {
+                interactiveDrag(
+                        uVec,
+                        vVec,
+                        viewVec,
+                        volumeCenter,
+                        imageCenter,
+                        useCompositing);
+        } else {
+            for (int j = 0; j < image.getHeight() - cores; j += iter) {
                 for (int c = 0; c < cores; c++) {
                     renderThread[c] = new MultiThreadRenderer(
                             uVec,
@@ -470,15 +479,6 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
                             useCompositing);
                     renderThread[c].start();
                 }
-            } else {
-                interactiveDrag(
-                        uVec,
-                        vVec,
-                        viewVec,
-                        volumeCenter,
-                        imageCenter,
-                        j,
-                        useCompositing);
             }
         }
     }
