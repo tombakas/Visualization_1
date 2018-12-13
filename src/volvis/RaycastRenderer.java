@@ -231,32 +231,34 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         double y = coord[1];
         double z = coord[2];
 
-        double alpha, alpha_expression;
-        double beta, beta_expression;
-        double gamma, gamma_expression;
+        double x_d = (x - Math.floor(x)) / (Math.ceil(x) - Math.floor(x));
+        double y_d = (y - Math.floor(y)) / (Math.ceil(y) - Math.floor(y));
+        double z_d = (z - Math.floor(z)) / (Math.ceil(z) - Math.floor(z));
 
-        alpha_expression = (x - Math.floor(x)) / (Math.ceil(x) - Math.floor(x));
-        beta_expression = (y - Math.floor(y)) / (Math.ceil(y) - Math.floor(y));
-        gamma_expression = (z - Math.floor(z)) / (Math.ceil(z) - Math.floor(z));
+        if (Double.isNaN(x_d)) { x_d = 0; }
+        if (Double.isNaN(y_d)) { y_d = 0; }
+        if (Double.isNaN(z_d)) { z_d = 0; }
 
-        alpha = (!Double.isNaN((alpha_expression))) ? alpha_expression : 0.0;
-        beta = (!Double.isNaN(beta_expression)) ? beta_expression : 0.0;
-        gamma = (!Double.isNaN(gamma_expression)) ? gamma_expression : 0.0;
+        double c_000 = volume.getVoxel((int)Math.floor(x), (int)Math.floor(y), (int)Math.floor(z));
+        double c_001 = volume.getVoxel((int)Math.floor(x), (int)Math.ceil(y),  (int)Math.floor(z));
+        double c_010 = volume.getVoxel((int)Math.floor(x), (int)Math.floor(y), (int)Math.ceil(z));
+        double c_011 = volume.getVoxel((int)Math.floor(x), (int)Math.ceil(y),  (int)Math.ceil(z));
+        double c_100 = volume.getVoxel((int)Math.ceil(x),  (int)Math.floor(y), (int)Math.floor(z));
+        double c_101 = volume.getVoxel((int)Math.ceil(x),  (int)Math.ceil(y),  (int)Math.floor(z));
+        double c_110 = volume.getVoxel((int)Math.ceil(x),  (int)Math.floor(y), (int)Math.ceil(z));
+        double c_111 = volume.getVoxel((int)Math.ceil(x),  (int)Math.ceil(y),  (int)Math.ceil(z));
 
-        double x0 = volume.getVoxel((int) Math.floor(x), (int) Math.floor(y), (int) Math.floor(z));
-        double x1 = volume.getVoxel((int) Math.ceil(x), (int) Math.floor(y), (int) Math.floor(z));
-        double x2 = volume.getVoxel((int) Math.floor(x), (int) Math.floor(y), (int) Math.ceil(z));
-        double x3 = volume.getVoxel((int) Math.ceil(x), (int) Math.floor(y), (int) Math.ceil(z));
-        double x4 = volume.getVoxel((int) Math.floor(x), (int) Math.ceil(y), (int) Math.floor(z));
-        double x5 = volume.getVoxel((int) Math.ceil(x), (int) Math.ceil(y), (int) Math.floor(z));
-        double x6 = volume.getVoxel((int) Math.floor(x), (int) Math.ceil(y), (int) Math.ceil(z));
-        double x7 = volume.getVoxel((int) Math.ceil(x), (int) Math.ceil(y), (int) Math.ceil(z));
+        double c_00 = c_000 * (1 - x_d) + (c_100 * x_d);
+        double c_01 = c_001 * (1 - x_d) + (c_101 * x_d);
+        double c_10 = c_010 * (1 - x_d) + (c_110 * x_d);
+        double c_11 = c_011 * (1 - x_d) + (c_111 * x_d);
 
-        double voxelVal = (1 - alpha) * (1 - beta) * (1 - gamma) * x0 + alpha * (1 - beta) * (1 - gamma) * x1 +
-                (1 - alpha) * beta * (1 - gamma) * x2 + alpha * beta * (1 - gamma) * x3 +
-                (1 - alpha) * (1 - beta) * gamma * x4 + alpha * (1 - beta) * gamma * x5 +
-                (1 - alpha) * beta * gamma * x6 + alpha * beta * gamma * x7;
-        return voxelVal;
+        double c_0 = c_00 * (1 - y_d) + (c_10 * y_d);
+        double c_1 = c_01 * (1 - y_d) + (c_11 * y_d);
+
+        double c = c_0 * (1 - z_d) + (c_1 * z_d);
+
+        return c;
     }
 
 
@@ -530,18 +532,20 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         }
 
         if (useShading) {
-            double specular = 0.1;
-            double diffuse = 0.7;
-            double ambient = 0.8;
+            double specular = 0.2;
+            double diffuse = 0.6;
+            double ambient = 0.7;
+
+            int specularPow = 10;
 
             if(a < 0.0001){
                 return new TFColor(r, g, b, alpha);
             }
 
             double[] lightVec = new double[3];
-            lightVec[0] = 4;
-            lightVec[1] = 20;
-            lightVec[2] = 0;
+            lightVec[0] = 2;
+            lightVec[1] = 2;
+            lightVec[2] = 1;
             double [] normalizedLightVec = VectorMath.normalize(lightVec);
 
             double[] normal = new double[3];
@@ -570,37 +574,9 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
 
             double HN = VectorMath.dotproduct(H, normal);
 
-            //calculate the reflection vector.
-            double[] reflVec = new double[3];
-            reflVec[0] = normal[0] - lightVec[0];
-            reflVec[1] = normal[1] - lightVec[1];
-            reflVec[2] = normal[2] - lightVec[2];
-
-            //normailze the reflection vector.
-            double reflVelMag = Math.sqrt(reflVec[0] * reflVec[0] + reflVec[1] * reflVec[1] + reflVec[2] * reflVec[2]);
-            reflVec[0] = reflVec[0] / reflVelMag;
-            reflVec[1] = reflVec[1] / reflVelMag;
-            reflVec[2] = reflVec[2] / reflVelMag;
-
-            //calculate reflection strength
-            double reflection =
-                reflVec[0] * viewVec[0] +
-                reflVec[1] * viewVec[1] +
-                reflVec[2] * viewVec[2];
-
-            reflection = reflection > 0 ? reflection : 0;
-
-            //calculate facingStrength
-            double faceStrength = normal[0] * viewVec[0] + normal[1]*viewVec[1] + normal[2] * viewVec[2];
-            faceStrength = faceStrength > 0 ? faceStrength : 0;
-
-//            System.out.printf("%f %f %f %f\n", r, g, b, alpha);
-//            System.out.println(LN);
-//            System.out.println(HN);
-
-            r = ambient + r * diffuse * LN + specular * Math.pow(HN, 3);
-            g = ambient + g * diffuse * LN + specular * Math.pow(HN, 3);
-            b = ambient + b * diffuse * LN + specular * Math.pow(HN, 3);
+            r = ambient + r * diffuse * LN + specular * Math.pow(HN, specularPow);
+            g = ambient + g * diffuse * LN + specular * Math.pow(HN, specularPow);
+            b = ambient + b * diffuse * LN + specular * Math.pow(HN, specularPow);
         }
 
         return new TFColor(r, g, b, alpha);
