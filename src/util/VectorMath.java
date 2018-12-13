@@ -57,9 +57,15 @@ public class VectorMath {
 
     public static double[] normalize(double[] v) {
         double l = length(v);
-        v[0] = v[0] / l;
-        v[1] = v[1] / l;
-        v[2] = v[2] / l;
+        if (l != 0) {
+            v[0] = v[0] / l;
+            v[1] = v[1] / l;
+            v[2] = v[2] / l;
+        } else {
+            v[0] = 0;
+            v[1] = 0;
+            v[2] = 0;
+        }
         return v ;
     }
     
