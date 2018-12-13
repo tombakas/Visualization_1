@@ -8,6 +8,7 @@ import com.jogamp.opengl.GL;
 import com.jogamp.opengl.GL2;
 import com.jogamp.opengl.util.texture.Texture;
 import com.jogamp.opengl.util.texture.awt.AWTTextureIO;
+import com.sun.org.apache.xpath.internal.operations.Mult;
 import gui.RaycastRendererPanel;
 import gui.TransferFunction2DEditor;
 import gui.TransferFunctionEditor;
@@ -18,8 +19,6 @@ import util.VectorMath;
 import volume.GradientVolume;
 import volume.Volume;
 import volume.VoxelGradient;
-
-import java.util.concurrent.TimeUnit;
 
 /**
  *
@@ -262,58 +261,6 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
     }
 
 
-    public int[] getEntryExit(int i, int j, int maxDist, double[] uVec, double[] vVec, double[] viewVec, double[] volumeCenter) {
-        int[] entryExit = new int[2];
-        double val;
-
-        // image is square
-        int imageCenter = image.getWidth() / 2;
-        short threshold = 0;
-        short step = 1;
-
-        double[] pixelCoord = new double[3];
-
-        for (int k = 0; k < maxDist; k += step) {
-            pixelCoord[0] = uVec[0] * (i - imageCenter) + vVec[0] * (j - imageCenter)
-                    + viewVec[0] * (k - volumeCenter[0]) + volumeCenter[0];
-            pixelCoord[1] = uVec[1] * (i - imageCenter) + vVec[1] * (j - imageCenter)
-                    + viewVec[1] * (k - volumeCenter[1]) + volumeCenter[1];
-            pixelCoord[2] = uVec[2] * (i - imageCenter) + vVec[2] * (j - imageCenter)
-                    + viewVec[2] * (k - volumeCenter[2]) + volumeCenter[2];
-
-            val = getVoxel(pixelCoord);
-            if (val > threshold) {
-                if (k > step) {
-                    entryExit[0] = k - step;
-                } else {
-                    entryExit[0] = k;
-                }
-                break;
-            }
-        }
-
-        for (int k = maxDist; k > 0; k -= step) {
-            pixelCoord[0] = uVec[0] * (i - imageCenter) + vVec[0] * (j - imageCenter)
-                    + viewVec[0] * (k - volumeCenter[0]) + volumeCenter[0];
-            pixelCoord[1] = uVec[1] * (i - imageCenter) + vVec[1] * (j - imageCenter)
-                    + viewVec[1] * (k - volumeCenter[1]) + volumeCenter[1];
-            pixelCoord[2] = uVec[2] * (i - imageCenter) + vVec[2] * (j - imageCenter)
-                    + viewVec[2] * (k - volumeCenter[2]) + volumeCenter[2];
-
-            val = getVoxel(pixelCoord);
-            if (val > threshold) {
-                entryExit[1] = k + step + 1;
-                if (k != maxDist) {
-                    entryExit[0] = k - step;
-                } else {
-                    entryExit[0] = k;
-                }
-                break;
-            }
-        }
-        return entryExit;
-    }
-
     TFColor computeCompositeColor(TFColor[] rayColors) {
         int k = rayColors.length;
 
@@ -321,8 +268,6 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         double green = 0;
         double blue = 0;
         double alpha = 1;
-
-        double alphaProduct;
 
         for (int m = 0; m < k; m++) {
             red = (1 - rayColors[m].a) * red + rayColors[m].r * rayColors[m].a;
@@ -434,7 +379,6 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
                 image.setRGB(i, j, 0);
             }
         }
-
 
         // vector uVec and vVec define a plane through the origin,
         // perpendicular to the view vector viewVec
